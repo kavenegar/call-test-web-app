@@ -172,20 +172,27 @@ export default {
                 click: this.handleBack
             },
             inputDevices: null,
+            outputDevices: null,
             selectedInputDevice: null,
+            selectedOutputDevice: null,
             duration: 0
         };
     },
     created() {
         this.joinCall(this.callId, this.accessToken);
+        navigator.mediaDevices.ondevicechange = (devices) => {
+            this.gotDevices();
+        };
 
-        navigator.mediaDevices.enumerateDevices().then(this.gotDevices).catch(error => {
-
-        });
     },
     methods: {
-        gotDevices(deviceInfos) {
-            this.inputDevices = deviceInfos.filter(e => e.kind === 'audioinput');
+        gotDevices() {
+            navigator.mediaDevices.enumerateDevices().then(deviceInfos => {
+                this.inputDevices = deviceInfos.filter(e => e.kind === 'audioinput');
+                this.outputDevices = deviceInfos.filter(e => e.kind === 'audiooutput');
+            }).catch(error => {
+
+            });
         },
         handleBack() {
             if (this.call) this.call.hangup();
@@ -252,11 +259,7 @@ export default {
             this.call.hangup();
         },
         selectInputDevice(value) {
-            var oldStream = this.call.media.stream;
-            var connection = this.call.media.connection;
             this.selectedInputDevice = value;
-
-
             this.getUserMedia(stream => {
                 this.call.media.connection.getSenders()[0].replaceTrack(stream.getAudioTracks()[0]).catch(error => {
                     Toast.open('خطا در تعویض ورودی صدا' + JSON.stringify(error.message));
@@ -277,9 +280,13 @@ export default {
             }
 
             navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+                stream.getTracks()[0].onended = (e) => {
+                    Toast.open('Input Audio Device Disconnected');
+                    this.selectInputDevice(null);
+                };
                 callback(stream);
             }).catch((error) => {
-                alert("getUserMediaError :" + error);
+                Toast.open("getUserMediaError :" + error);
             });
         }
     }
