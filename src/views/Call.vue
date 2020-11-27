@@ -11,17 +11,16 @@
                             <div>
                                 <label class="text-muted">وضعیت تماس</label>
                                 <p>
-                                    <b-tag type="is-info" style="text-transform: uppercase;">{{call.status}}</b-tag>
+                                    <b-tag type="is-info" style="text-transform: uppercase;">{{ call.status }}</b-tag>
                                 </p>
                                 <label class="text-muted">شناسه تماس</label>
-                                <p class="ltr">{{call.id}}</p>
+                                <p class="ltr">{{ call.id }}</p>
 
                                 <label class="text-muted">مدت زمان مکالمه</label>
-                                <p class="ltr">{{parseInt(call.duration / 1000)}}</p>
+                                <p class="ltr">{{ parseInt(call.duration / 1000) }}</p>
 
                                 <label class="text-muted">تماس گیرنده</label>
-                                <p class="ltr">{{call.caller.username}} =>
-                                    ‌{{call.receptor.username}} </p>
+                                <p class="ltr">{{ call.caller.username }} => {{ call.receptor.username }} </p>
 
                                 <div class="columns">
                                     <div class="column">
@@ -32,7 +31,7 @@
                                                     <b-taglist attached>
                                                         <b-tag size="is-medium" type="is-dark">Caller Media</b-tag>
                                                         <b-tag size="is-medium" type="is-info">
-                                                            {{call.callerMediaStatus.toUpperCase()}}
+                                                            {{ call.callerMediaStatus.toUpperCase() }}
                                                         </b-tag>
                                                     </b-taglist>
                                                 </div>
@@ -40,7 +39,7 @@
                                                     <b-taglist attached>
                                                         <b-tag size="is-medium" type="is-dark">Receptor Media</b-tag>
                                                         <b-tag size="is-medium" type="is-info">
-                                                            {{call.receptorMediaStatus.toUpperCase()}}
+                                                            {{ call.receptorMediaStatus.toUpperCase() }}
                                                         </b-tag>
                                                     </b-taglist>
                                                 </div>
@@ -48,35 +47,45 @@
                                                     <b-taglist attached>
                                                         <b-tag size="is-medium" type="is-dark">Messaging</b-tag>
                                                         <b-tag size="is-medium" type="is-info">
-                                                            {{call.messaging.status.toUpperCase()}}
+                                                            {{ call.messaging.status.toUpperCase() }}
                                                         </b-tag>
                                                     </b-taglist>
                                                 </div>
                                             </b-field>
-                                            <b-field grouped group-multiline>
+
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="columns">
+                                    <div class="column">
+                                        <label class="text-muted">وضعیت WebRTC</label>
+                                        <p class="ltr">
+
+                                            <b-field grouped group-multiline v-if="call.media && call.media.status">
                                                 <div class="control">
                                                     <b-taglist attached>
                                                         <b-tag size="is-medium" type="is-dark">IceGathering</b-tag>
                                                         <b-tag size="is-medium" type="is-info">
-                                                            {{call.media.status.iceGatheringState.toUpperCase()}}
+                                                            {{ call.media.status.iceGatheringState.toUpperCase() }}
                                                         </b-tag>
                                                     </b-taglist>
                                                 </div>
 
-                                                <div class="control">
+                                                <div class="control" v-if="call.media && call.media.status">
                                                     <b-taglist attached>
                                                         <b-tag size="is-medium" type="is-dark">IceConnection</b-tag>
                                                         <b-tag size="is-medium" type="is-info">
-                                                            {{call.media.status.iceConnectionState.toUpperCase()}}
+                                                            {{ call.media.status.iceConnectionState.toUpperCase() }}
                                                         </b-tag>
                                                     </b-taglist>
                                                 </div>
 
-                                                <div class="control">
+                                                <div class="control" v-if="call.media && call.media.status">
                                                     <b-taglist attached>
                                                         <b-tag size="is-medium" type="is-dark">Signaling</b-tag>
                                                         <b-tag size="is-medium" type="is-info">
-                                                            {{call.media.status.signalingState.toUpperCase()}}
+                                                            {{ call.media.status.signalingState.toUpperCase() }}
                                                         </b-tag>
                                                     </b-taglist>
                                                 </div>
@@ -85,16 +94,14 @@
                                         </p>
                                     </div>
                                 </div>
-
                                 <label class="text-muted">ورودی صدا</label>
-                                <b-select style="margin-top:20px" placeholder="انتخاب کنید" expanded>
-                                    <option
-                                            v-for="option in inputDevices"
-                                            :value="option.deviceId"
-                                            :key="option.deviceId">
-                                        {{ option.label }}
-                                    </option>
-                                </b-select>
+
+                                <b-tabs type="is-toggle" expanded style="direction: ltr" @input="selectInputDevice">
+                                    <b-tab-item v-for="option in inputDevices" :label="option.label"
+                                                :value="option.deviceId"
+                                                :key="option.deviceId"
+                                                @click="selectInputDevice(option.deviceId)"></b-tab-item>
+                                </b-tabs>
 
 
                             </div>
@@ -124,144 +131,173 @@
 </template>
 
 <script>
-    import httpClient from '../api'
-    import router from "../router";
-    import Toolbar from "../components/Toolbar";
-    import {ToastProgrammatic as Toast} from 'buefy'
+import httpClient from '../api'
+import router from "../router";
+import Toolbar from "../components/Toolbar";
+import {ToastProgrammatic as Toast} from 'buefy';
+import {
+    KavenegarCall,
+    Environment,
+    LogLevel,
+    RemoteLogger,
+    CallDirection,
+    CallFinishedReason,
+    CallStatus,
+    Logger
+} from '../kavenegar-voice';
+//kavenegarCall: new KavenegarCall("ws://127.0.0.1:8080/v1"),
+export default {
+    name: 'Call',
+    components: {Toolbar},
+    data() {
+        return {
+            kavenegarCall: new KavenegarCall(Environment.PRODUCTION),
+            call: null,
+            receptor: "",
+            callId: this.$route.params.id,
+            accessToken: this.$route.params.accessToken,
+            backButton: {
+                icon: 'arrow-right',
+                click: this.handleBack
+            },
+            inputDevices: null,
+            selectedInputDevice: null,
+            duration: 0
+        };
+    },
+    created() {
+        this.joinCall(this.callId, this.accessToken);
 
+        navigator.mediaDevices.enumerateDevices().then(this.gotDevices).catch(error => {
 
-    export default {
-        name: 'Call',
-        components: {Toolbar},
-        data() {
-            return {
-                kavenegarCall: new KavenegarCall(Environment.PRODUCTION),
-                call: null,
-                receptor: "",
-                callId: this.$route.params.id,
-                accessToken: this.$route.params.accessToken,
-                backButton: {
-                    icon: 'arrow-right',
-                    click: this.handleBack
-                },
-                inputDevices: null,
-                selectedInputDevice: null,
-                duration: 0
-            };
+        });
+    },
+    methods: {
+        gotDevices(deviceInfos) {
+            this.inputDevices = deviceInfos.filter(e => e.kind === 'audioinput');
         },
-        created() {
-            this.joinCall(this.callId, this.accessToken);
+        handleBack() {
+            if (this.call) this.call.hangup();
+            router.push({path: '/'});
+        },
+        getAuthenticatedEndpoint() {
+            return JSON.parse(localStorage.getItem("AuthenticatedEndpoint"));
+        },
+        initCall(callId, accessToken, stream) {
+            const params = {
+                callId: callId,
+                accessToken: accessToken,
+                localStream: stream,
+                remoteElement: document.getElementById("audio2"),
+                logger: new Logger(LogLevel.INFO, callId, accessToken)
+            };
 
-            navigator.mediaDevices.enumerateDevices().then(this.gotDevices).catch(error => {
+            this.kavenegarCall.initCall(params, (joinResult, call) => {
+                if (call == null) {
+                    Toast.open('اتصال به تماس با خطا مواجه شد :' + joinResult);
+                    return;
+                }
+
+                if (call.direction === CallDirection.INBOUND) {
+                    call.ringing();
+                }
+
+                this.call = call;
+
+                call.onFinished = (reason) => {
+                    call.dispose();
+                    if (reason !== CallFinishedReason.HANGUP) {
+                        Toast.open('تماس به پایان رسید, دلیل قطع تماس :' + reason);
+                    }
+                    router.push({path: '/'});
+                };
+                call.onMediaStateChanged = (event) => {
+
+                };
+
+                call.onMessagingStateChanged = (event) => {
+
+                };
+
+                call.onStatusChanged = (status) => {
+
+                };
+
 
             });
         },
-        methods: {
-            gotDevices(deviceInfos) {
-                this.inputDevices = deviceInfos.filter(e => e.kind === 'audioinput');
-            },
-            handleBack() {
-                if (this.call) this.call.hangup();
-                router.push({path: '/'});
-            },
-            getAuthenticatedEndpoint() {
-                return JSON.parse(localStorage.getItem("AuthenticatedEndpoint"));
-            },
-            initCall(callId, accessToken, stream) {
-                const params = {
-                    callId: callId,
-                    accessToken: accessToken,
-                    localStream: stream,
-                    remoteElement: document.getElementById("audio2")
-                };
-
-                this.kavenegarCall.initCall(params, (joinResult, call) => {
-                    if (call == null) {
-                        Toast.open('اتصال به تماس با خطا مواجه شد :‌' + joinResult);
-                        return;
-                    }
-
-                    if (call.direction === CallDirection.INBOUND) {
-                        call.ringing();
-                    }
-
-                    this.call = call;
-
-                    call.onFinished = (reason) => {
-                        call.dispose();
-                        if (reason !== CallFinishedReason.HANGUP) {
-                            Toast.open('تماس به پایان رسید, دلیل قطع تماس :' + reason);
-                        }
-                        router.push({path: '/'});
-                    };
-                    call.onMediaStateChanged = (event) => {
-
-                    };
-
-                    call.onMessagingStateChanged = (event) => {
-
-                    };
-
-                    call.onStatusChanged = (status) => {
-
-                    };
+        joinCall(id, accessToken) {
+            this.getUserMedia(stream => {
+                this.initCall(id, accessToken, stream)
+            });
+        },
+        acceptCall() {
+            this.call.accept();
+        },
+        rejectCall() {
+            this.call.reject();
+        },
+        hangupCall() {
+            this.call.hangup();
+        },
+        selectInputDevice(value) {
+            var oldStream = this.call.media.stream;
+            var connection = this.call.media.connection;
+            //oldStream.close();
+            this.selectedInputDevice = value;
+            //connection.removeStream(oldStream);
 
 
-                });
-            },
-            joinCall(id, accessToken) {
-                this.getUserMedia(stream => {
-                    this.initCall(id, accessToken, stream)
-                });
-            },
-            acceptCall() {
-                this.call.accept();
-            },
-            rejectCall() {
-                this.call.reject();
-            },
-            hangupCall() {
-                this.call.hangup();
-            },
-            getUserMedia(callback) {
-                navigator.mediaDevices.getUserMedia({
-                    video: false,
-                    audio: {
-                        deviceId: this.selectedInputDevice ? {exact: this.selectedInputDevice} : undefined,
-                        noiseSuppression: true, echoCancellation: true
-                    }
-                }).then((stream) => {
-                    callback(stream);
-                }).catch((error) => {
-                    alert("getUserMediaError :" + error);
-                });
+            this.getUserMedia(stream => {
+                //this.call.media.start(stream);
+                this.call.media.connection.getSenders()[0].replaceTrack(stream.getAudioTracks()[0]);
+
+            })
+        },
+        getUserMedia(callback) {
+            var constraints = {
+                video: false,
+                audio: {
+                    noiseSuppression: true, echoCancellation: true
+                }
+            };
+
+            if (this.selectedInputDevice) {
+                constraints.audio.deviceId = this.selectedInputDevice;
             }
+
+            navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+                callback(stream);
+            }).catch((error) => {
+                alert("getUserMediaError :" + error);
+            });
         }
     }
+}
 </script>
 <style>
 
-    #call-wrapper label {
-        display: block;
-        font-weight: bold;
-        margin-top: 15px;
-        font-size: 20px;
-    }
+#call-wrapper label {
+    display: block;
+    font-weight: bold;
+    margin-top: 15px;
+    font-size: 20px;
+}
 
 
-    #call-wrapper #call-panel .call-status {
-        float: left !important;
-        font-weight: normal;
-        text-transform: uppercase;
-        padding: 5px 7px;
-    }
+#call-wrapper #call-panel .call-status {
+    float: left !important;
+    font-weight: normal;
+    text-transform: uppercase;
+    padding: 5px 7px;
+}
 
 
-    #call-wrapper #call-panel p.ltr {
-        background: #f1f1f1;
-        padding: 10px;
-        border-radius: 3px;
-        margin-top: 10px;
-    }
+#call-wrapper #call-panel p.ltr {
+    background: #f1f1f1;
+    padding: 10px;
+    border-radius: 3px;
+    margin-top: 10px;
+}
 
 </style>

@@ -1,8 +1,9 @@
 let baseURL;
 if (!process.env.NODE_ENV || process.env.NODE_ENV === "development") {
-    baseURL = 'https://api.kavenegar.io/user/v1';
+    baseURL = 'http://localhost:8081/voice/v1';
+    baseURL = 'https://api.kavenegar.io/voice/v1';
 } else {
-    baseURL = 'https://api.kavenegar.io/user/v1';
+    baseURL = 'https://api.kavenegar.io/voice/v1';
 }
 
 

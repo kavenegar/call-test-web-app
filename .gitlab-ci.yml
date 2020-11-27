@@ -1,0 +1,44 @@
+image: "node:8.15.1"
+
+stages:
+  - build
+  - dockerize
+  - deploy
+
+build_project:
+  stage: build
+  script:
+    - npm install
+    - npm run build
+    - ls -l -h -a .
+  artifacts:
+    paths:
+      - dist
+
+build_docker:
+  stage: dockerize
+  image: docker:git
+  services:
+    - docker:dind
+  dependencies:
+    - build_project
+  script:
+    - ls -l -h -a
+    - docker login  giti.kavenegar.com:5050 -u kavenegar -p ofysssRScaoJF3yXByyz
+    - docker build -t giti.kavenegar.com:5050/kavenegar-call/avanegar-front .
+    - docker push giti.kavenegar.com:5050/kavenegar-call/avanegar-front
+
+production:
+  stage: deploy
+  image: alpine:latest
+  only:
+    - master
+  before_script:
+    - apk update && apk add openssh
+    - mkdir -p ~/.ssh
+    - echo "$PRIVATE_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+    - eval "$(ssh-agent -s)"
+    - ssh-add ~/.ssh/id_rsa
+    - ssh-keyscan -H kavenegar.io >> ~/.ssh/known_hosts
+  script:
+    - ssh root@kavenegar.io "cd /opt/avanegar-front && docker-compose pull && docker-compose up -d"

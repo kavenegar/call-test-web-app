@@ -3,6 +3,7 @@ import App from './App.vue'
 import './registerServiceWorker'
 import router from './router'
 import Buefy from 'buefy'
+import './kavenegar-voice'
 
 Vue.config.productionTip = false;
 Vue.use(Buefy);
