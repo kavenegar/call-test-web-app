@@ -90,6 +90,17 @@
                                                     </b-taglist>
                                                 </div>
 
+                                                <div class="control"
+                                                     v-if="call.media && call.media.connection.getSenders()[0]">
+                                                    <b-taglist attached>
+                                                        <b-tag size="is-medium" type="is-dark">Sender</b-tag>
+                                                        <b-tag size="is-medium" type="is-info">
+                                                            {{ call.media.connection.getSenders()[0].track.label }} -
+                                                            {{ call.media.connection.getSenders()[0].track.readyState }}
+                                                        </b-tag>
+                                                    </b-taglist>
+                                                </div>
+
                                             </b-field>
                                         </p>
                                     </div>
@@ -243,14 +254,13 @@ export default {
         selectInputDevice(value) {
             var oldStream = this.call.media.stream;
             var connection = this.call.media.connection;
-            //oldStream.close();
             this.selectedInputDevice = value;
-            //connection.removeStream(oldStream);
 
 
             this.getUserMedia(stream => {
-                //this.call.media.start(stream);
-                this.call.media.connection.getSenders()[0].replaceTrack(stream.getAudioTracks()[0]);
+                this.call.media.connection.getSenders()[0].replaceTrack(stream.getAudioTracks()[0]).catch(error => {
+                    Toast.open('خطا در تعویض ورودی صدا' + JSON.stringify(error.message));
+                });
 
             })
         },
