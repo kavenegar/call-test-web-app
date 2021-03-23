@@ -1,9 +1,8 @@
-let baseURL;
-if (!process.env.NODE_ENV || process.env.NODE_ENV === "development") {
-    baseURL = 'http://localhost:8081/voice/v1';
-    baseURL = 'https://api.kavenegar.io/voice/v1';
-} else {
-    baseURL = 'https://api.kavenegar.io/voice/v1';
+//let baseURL;
+let baseURL = 'https://api.kavenegar.io/voice/v1';
+
+if (localStorage.getItem("BASE_URL") != null) {
+    baseURL = localStorage.getItem("BASE_URL");
 }
 
 

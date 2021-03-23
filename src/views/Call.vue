@@ -157,12 +157,14 @@ import {
     Logger
 } from '../kavenegar-voice';
 //kavenegarCall: new KavenegarCall("ws://127.0.0.1:8080/v1"),
+var messagingURI = localStorage.getItem("MESSAGING_URI");
+if (messagingURI == null) messagingURI = Environment.PRODUCTION;
 export default {
     name: 'Call',
     components: {Toolbar},
     data() {
         return {
-            kavenegarCall: new KavenegarCall(Environment.PRODUCTION),
+            kavenegarCall: new KavenegarCall(messagingURI),
             call: null,
             receptor: "",
             callId: this.$route.params.id,

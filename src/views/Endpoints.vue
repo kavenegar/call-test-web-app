@@ -6,8 +6,12 @@
                 <ul style="list-style: none" id="endpoints-list">
                     <li v-for="endpoint in this.endpoints" @click="call(endpoint)" v-if="endpoint.username !== getAuthenticatedEndpoint().username">
                         {{endpoint.username}}
+
                         <b-button type="" icon-right="phone">
                         </b-button>
+                        <b-button type="" icon-right="video">
+                        </b-button>
+
                     </li>
                 </ul>
             </div>

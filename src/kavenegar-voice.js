@@ -178,6 +178,7 @@ class KavenegarCall {
             if (joinResponse.features["metrics"] != null) {
                 call.features.push(new MetricFeature(joinResponse.features["metrics"]));
             }
+            call.status = joinResponse.status;
             callback(joinResponse.result, call);
 
             self.calls.push(call);
@@ -249,6 +250,7 @@ class JoinResponse extends Packet {
 class CallResponse extends Packet {
     constructor(callId, status) {
         super("call.response");
+        this.callId = callId;
         this.status = status;
     }
 }
@@ -264,6 +266,7 @@ class AckRequest extends Packet {
 class OfferRequest extends Packet {
     constructor(callId, sdp) {
         super("offer");
+        this.callId = callId;
         this.sdp = sdp;
     }
 }
@@ -271,6 +274,7 @@ class OfferRequest extends Packet {
 class ByeRequest extends Packet {
     constructor(callId, reason) {
         super("bye");
+        this.callId = callId;
         this.reason = reason;
     }
 }
@@ -278,6 +282,7 @@ class ByeRequest extends Packet {
 class IceCandidateRequest extends Packet {
     constructor(callId, candidate) {
         super("call.ice_candidate");
+        this.callId = callId;
         this.candidate = candidate;
     }
 }
@@ -298,7 +303,7 @@ class MetricsRequest extends Packet {
 }
 
 class EventRequest extends Packet {
-    constructor(callId, name,payload) {
+    constructor(callId, name, payload) {
         super("event");
         this.callId = callId;
         this.name = name;
@@ -383,7 +388,7 @@ class KavenegarMedia {
 
     get stats() {
         var result = new Promise((resolve, reject) => {
-            if(this.connection == null) reject(null);
+            if (this.connection == null) reject(null);
             this.connection.getStats(null).then(stats => {
                 var metrics = [];
                 stats.forEach(report => {
@@ -517,7 +522,7 @@ class KavenegarMessaging {
         try {
             const packet = this.queue.peek();
             if (packet === undefined) {
-                this.checkHeartbeat();
+               // this.checkHeartbeat();
                 return;
             }
             if (packet.id === undefined || packet.id == null) {
@@ -919,18 +924,18 @@ class Call {
         this.media = new KavenegarMedia(this.logger);
 
         this.media.onIceGatheringStateChanged = (state) => {
-            this.messaging.send(new EventRequest(this.id, "CLIENT_ICE_GATHERING_STATE", {"state": state.toString().toLowerCase()}));
+          //  this.messaging.send(new EventRequest(this.id, "CLIENT_ICE_GATHERING_STATE", {"state": state.toString().toLowerCase()}));
         };
         this.media.onIceConnectionStateChanged = (state) => {
-            this.messaging.send(new EventRequest(this.id, "CLIENT_ICE_CONNECTION_STATE", {"state": state.toString().toLowerCase()}));
+          //  this.messaging.send(new EventRequest(this.id, "CLIENT_ICE_CONNECTION_STATE", {"state": state.toString().toLowerCase()}));
         };
 
         this.media.onSignalingStateChanged = (state) => {
-            this.messaging.send(new EventRequest(this.id, "CLIENT_SIGNALING_STATE", {"state": state.toString().toLowerCase()}));
+         //   this.messaging.send(new EventRequest(this.id, "CLIENT_SIGNALING_STATE", {"state": state.toString().toLowerCase()}));
         };
 
         this.media.onPeerConnectionStateChanged = (state) => {
-            this.messaging.send(new EventRequest(this.id, "CLIENT_PEER_CONNECTION_STATE", {"state": state.toString().toLowerCase()}));
+         //   this.messaging.send(new EventRequest(this.id, "CLIENT_PEER_CONNECTION_STATE", {"state": state.toString().toLowerCase()}));
         };
 
         this.media.start(this.stream, this.element)
